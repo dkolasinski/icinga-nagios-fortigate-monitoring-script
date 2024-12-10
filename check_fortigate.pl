@@ -3,6 +3,7 @@
 # icinga: -epn
 # This Plugin checks the cluster state of FortiGate
 #
+# This list may not be valid:
 # Tested on: Fortigate 80C (5.0.7b, 5.2.x)
 # Tested on: FortiGate 100D / FortiGate 300C (5.0.3)
 # Tested on: FortiGate 200B (5.0.6), Fortigate 800C (5.2.2)
@@ -13,6 +14,7 @@
 # Tested on: FortiGate 100A (2.8)
 # Tested on: FortiGate 800D (6.2.3)
 # Tested on: FortiGate 900D (6.4.5, 7.2.10)
+# Tested on: FortiGate 40F (7.2.10, 7.4.5)
 # Tested on: FortiGate 60F (6.4.5, 6.4.7, 6.4.8, 6.4.9, 7.2.10)
 # Tested on: FortiGate 200F (6.4.5, 6.4.7, 6.4.8, 6.4.9)
 # Tested on: FortiGate 300D (6.4.5, 6.4.7, 6.4.8, 6.4.9)
