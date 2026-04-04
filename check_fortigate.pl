@@ -130,6 +130,9 @@
 # - Fixed sessions/memory/CPU values for Fortigate 70F
 # Release 1.8.16-o1 (2026-04-04) Dariusz Zielinski-Kolasinski
 # - The version suffix was changed to avoid confusion with the version in the riskersen repository.
+# Release 1.8.16-o2 (2026-04-04) Dariusz Zielinski-Kolasinski
+# - selected HA mode (value) proper validation
+# - added missing spaces
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -158,7 +161,7 @@ use POSIX;
 use Date::Parse;
 
 my $script = "check_fortigate.pl";
-my $script_version = "1.8.16-o1";
+my $script_version = "1.8.16-o2";
 
 # for more information.
 my %status = (     # Enumeration for the output Nagios states
@@ -725,7 +728,10 @@ sub get_ha_mode {
                         3 => "Active/Passive"
   );
 
-  if ( (int $expected) != $ha_modes) {
+  if (not exists $ha_modes{$expected}) {
+    $return_state = "CRITICAL";
+    $return_string = "Supplied HA mode not int list. Fix your script parameters!";
+  } elsif ((int $expected) != $ha_modes) {
     $return_state = "CRITICAL";
     $return_string = "HA mode is NOT working as expected ( mode: " . $ha_modes{$ha_modes} . ", expected: " . $ha_modes{(int $expected)} . ")";
   } else {
@@ -1798,7 +1804,7 @@ as an alternative to --authpassword/--privpassword/--community
 =over
 
 =item B<-T|--type>
-STRING - CPU, MEM, cpu-sys, mem-sys, ses, VPN, net, disk, ha, hasync, uptime, Cluster, wtp, switch, hw, fazcpu, fazmem, fazdisk, sdwan-hc, pktloss, pktloss2, latency, latency2, jitter, jitter2,latency, latency2, jitter, jitter2, fmgdevice, license, license-version, linkmonitor-hc, dhcp
+STRING - CPU, MEM, cpu-sys, mem-sys, ses, VPN, net, disk, ha, hasync, uptime, Cluster, wtp, switch, hw, fazcpu, fazmem, fazdisk, sdwan-hc, pktloss, pktloss2, latency, latency2, jitter, jitter2, latency, latency2, jitter, jitter2, fmgdevice, license, license-version, linkmonitor-hc, dhcp
 
 =item B<-S|--serial>
 STRING - Primary serial number.
