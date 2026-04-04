@@ -123,6 +123,13 @@
 # Release 1.8.14 (2024-12-10) Dariusz Zielinski-Kolasinski
 # - added Fortigate DHCP free lease check
 # - fixed syntax error in Link Monitor health check
+# Release 1.8.15 (2026-04-04) Henry Kocher (Mr12231996)
+# - Fixed output of Packetloss Check for SDWAN
+# - Added Jitter and Latency Check for SDWAN
+# Release 1.8.16 (2026-04-04) josy1024
+# - Fixed sessions/memory/CPU values for Fortigate 70F
+# Release 1.8.16-o1 (2026-04-04) Dariusz Zielinski-Kolasinski
+# - The version suffix was changed to avoid confusion with the version in the riskersen repository.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -151,7 +158,7 @@ use POSIX;
 use Date::Parse;
 
 my $script = "check_fortigate.pl";
-my $script_version = "1.8.14";
+my $script_version = "1.8.16-o1";
 
 # for more information.
 my %status = (     # Enumeration for the output Nagios states
@@ -313,6 +320,11 @@ my $oid_sdwan_healthcheck_iname_table = ".1.3.6.1.4.1.12356.101.4.9.2.1.14"; # S
 my $oid_chklink_pktloss1  = ".1.3.6.1.4.1.12356.101.4.9.2.1.9.1";  # Location of Current packet loss sdwan-memeber 1 (percentage)
 my $oid_chklink_pktloss2  = ".1.3.6.1.4.1.12356.101.4.9.2.1.9.2";  # Location of Current packet loss sdwan-memeber 2 (percentage)
 
+my $oid_chklink_latency1  = ".1.3.6.1.4.1.12356.101.4.9.2.1.5.1";  # Location of Current latency sdwan-memeber 1 (ms)
+my $oid_chklink_latency2  = ".1.3.6.1.4.1.12356.101.4.9.2.1.5.2";  # Location of Current latency sdwan-memeber 2 (ms)
+
+my $oid_chklink_jitter1  = ".1.3.6.1.4.1.12356.101.4.9.2.1.6.1";  # Location of Current jitter sdwan-memeber 1 (ms)
+my $oid_chklink_jitter2  = ".1.3.6.1.4.1.12356.101.4.9.2.1.6.2";  # Location of Current jitter sdwan-memeber 2 (ms)
 
 # conserve Mode
 my $oid_lowmem_capacity     = ".1.3.6.1.4.1.12356.101.4.1.10.0";        #Total lowmem  memory (RAM) capacity (KB)
@@ -450,6 +462,14 @@ if ( $curr_serial =~ /^(FL|FAZ)/ ) { # FL|FAZ = FORTIANALYZER
         ($return_state, $return_string) = get_pktloss_value();
     } elsif ( $type_lc eq "pktloss2" ) {
         ($return_state, $return_string) = get_pktloss_value2();
+    } elsif ( $type_lc eq "latency" ) {
+        ($return_state, $return_string) = get_latency_value();
+    } elsif ( $type_lc eq "latency2" ) {
+        ($return_state, $return_string) = get_latency_value2();
+    } elsif ( $type_lc eq "jitter" ) {
+        ($return_state, $return_string) = get_jitter_value();
+    } elsif ( $type_lc eq "jitter2" ) {
+        ($return_state, $return_string) = get_jitter_value2();
     } else {
         ($return_state, $return_string) = ('UNKNOWN', "UNKNOWN: This device supports only selected type -T cpu|mem|ses|net, $curr_device is a Legacy Fortigate (S/N: $curr_serial)");
     }
@@ -495,6 +515,14 @@ if ( $curr_serial =~ /^(FL|FAZ)/ ) { # FL|FAZ = FORTIANALYZER
         ($return_state, $return_string) = get_pktloss_value();
     } elsif ( $type_lc eq "pktloss2" ) {
         ($return_state, $return_string) = get_pktloss_value2();
+    } elsif ( $type_lc eq "latency" ) {
+        ($return_state, $return_string) = get_latency_value();
+    } elsif ( $type_lc eq "latency2" ) {
+        ($return_state, $return_string) = get_latency_value2();
+    } elsif ( $type_lc eq "jitter" ) {
+        ($return_state, $return_string) = get_jitter_value();
+    } elsif ( $type_lc eq "jitter2" ) {
+        ($return_state, $return_string) = get_jitter_value2();
     } elsif ( $type_lc eq "conserve-proxy" ) {
         ($return_state, $return_string) = get_conserve_mode($oid_mem_enter_proxy_thrsh, $oid_mem_leave_proxy_thrsh, "proxy");
     } elsif ( $type_lc eq "conserve-kernel" ) {
@@ -598,7 +626,7 @@ sub get_pktloss_value {
     $return_string = "wan1 Packet loss is warning: " . $value . "%";
   } else {
     $return_state = "OK";
-    $return_string = "No packet loss for wan1: " . $value. "%";
+    $return_string = "Packet loss for wan1: " . $value. "%";
   }
 
   $return_string = $return_state . ": " . $return_string . "|'pktloss'=" . $value . "%;" . $warn . ";" . $crit;
@@ -608,18 +636,85 @@ sub get_pktloss_value2 {
   my $value = get_snmp_value($session, $oid_chklink_pktloss2);
   if ( $value >= $crit ) {
     $return_state = "CRITICAL";
-    $return_string = "wan1 Packet loss is critical: " . $value . "%";
+    $return_string = "wan2 Packet loss is critical: " . $value . "%";
   } elsif ( $value >= $warn ) {
     $return_state = "WARNING";
-    $return_string = "wan1 Packet loss is warning: " . $value . "%";
+    $return_string = "wan2 Packet loss is warning: " . $value . "%";
   } else {
     $return_state = "OK";
-    $return_string = "No packet loss for wan2: " . $value. "%";
+    $return_string = "Packet loss for wan2: " . $value. "%";
   }
 
   $return_string = $return_state . ": " . $return_string . "|'pktloss'=" . $value . "%;" . $warn . ";" . $crit;
   return ($return_state, $return_string);
 }
+sub get_latency_value {
+  my $value = get_snmp_value($session, $oid_chklink_latency1);
+  if ( $value >= $crit ) {
+    $return_state = "CRITICAL";
+    $return_string = "wan1 Latency is critical: " . $value . "ms";
+  } elsif ( $value >= $warn ) {
+    $return_state = "WARNING";
+    $return_string = "wan1 Latency is warning: " . $value . "ms";
+  } else {
+    $return_state = "OK";
+    $return_string = "Latency for wan1: " . $value. "ms";
+  }
+
+  $return_string = $return_state . ": " . $return_string . "|'latency'=" . $value . "ms;" . $warn . ";" . $crit;
+  return ($return_state, $return_string);
+}
+sub get_latency_value2 {
+  my $value = get_snmp_value($session, $oid_chklink_latency2);
+  if ( $value >= $crit ) {
+    $return_state = "CRITICAL";
+    $return_string = "wan2 Latency is critical: " . $value . "ms";
+  } elsif ( $value >= $warn ) {
+    $return_state = "WARNING";
+    $return_string = "wan2 Latency is warning: " . $value . "ms";
+  } else {
+    $return_state = "OK";
+    $return_string = "Latency for wan2: " . $value. "ms";
+  }
+
+  $return_string = $return_state . ": " . $return_string . "|'latency'=" . $value . "ms;" . $warn . ";" . $crit;
+  return ($return_state, $return_string);
+}
+
+sub get_jitter_value {
+  my $value = get_snmp_value($session, $oid_chklink_jitter1);
+  if ( $value >= $crit ) {
+    $return_state = "CRITICAL";
+    $return_string = "wan1 Jitter is critical: " . $value . "ms";
+  } elsif ( $value >= $warn ) {
+    $return_state = "WARNING";
+    $return_string = "wan1 Jitter is warning: " . $value . "ms";
+  } else {
+    $return_state = "OK";
+    $return_string = "Jitter for wan1: " . $value. "ms";
+  }
+
+  $return_string = $return_state . ": " . $return_string . "|'jitter'=" . $value . "ms;" . $warn . ";" . $crit;
+  return ($return_state, $return_string);
+}
+sub get_jitter_value2 {
+  my $value = get_snmp_value($session, $oid_chklink_jitter2);
+  if ( $value >= $crit ) {
+    $return_state = "CRITICAL";
+    $return_string = "wan2 Jitter is critical: " . $value . "ms";
+  } elsif ( $value >= $warn ) {
+    $return_state = "WARNING";
+    $return_string = "wan2 Jitter is warning: " . $value . "ms";
+  } else {
+    $return_state = "OK";
+    $return_string = "Jitter for wan2: " . $value. "ms";
+  }
+
+  $return_string = $return_state . ": " . $return_string . "|'jitter'=" . $value . "ms;" . $warn . ";" . $crit;
+  return ($return_state, $return_string);
+}
+
+
 
 sub get_ha_mode {
   my $ha_modes = get_snmp_value($session, $oid_ha);
@@ -706,6 +801,8 @@ sub get_health_value {
   } elsif ( $curr_serial =~ /^FG100A/ ) {
       $oid = $_[0];
   } elsif ( $curr_serial =~ /^FG201/ ) {
+      $oid = $_[0];
+  } elsif ( $curr_serial =~ /^FGT70/ ) {
       $oid = $_[0];
   } elsif ( $curr_serial =~ /^FG/ ) {
       $oid = $_[0] . ".1";
@@ -1701,7 +1798,7 @@ as an alternative to --authpassword/--privpassword/--community
 =over
 
 =item B<-T|--type>
-STRING - CPU, MEM, cpu-sys, mem-sys, ses, VPN, net, disk, ha, hasync, uptime, Cluster, wtp, switch, hw, fazcpu, fazmem, fazdisk, sdwan-hc, pktloss, pktloss2, fmgdevice, license, license-version, linkmonitor-hc, dhcp
+STRING - CPU, MEM, cpu-sys, mem-sys, ses, VPN, net, disk, ha, hasync, uptime, Cluster, wtp, switch, hw, fazcpu, fazmem, fazdisk, sdwan-hc, pktloss, pktloss2, latency, latency2, jitter, jitter2,latency, latency2, jitter, jitter2, fmgdevice, license, license-version, linkmonitor-hc, dhcp
 
 =item B<-S|--serial>
 STRING - Primary serial number.
