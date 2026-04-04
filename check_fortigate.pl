@@ -133,6 +133,8 @@
 # Release 1.8.16-o2 (2026-04-04) Dariusz Zielinski-Kolasinski
 # - selected HA mode (value) proper validation
 # - added missing spaces
+# Release 1.8.16-o3 (2026-04-04) dbecker1234
+# - fixed first failed SDWAN HC check
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -161,7 +163,7 @@ use POSIX;
 use Date::Parse;
 
 my $script = "check_fortigate.pl";
-my $script_version = "1.8.16-o2";
+my $script_version = "1.8.16-o3";
 
 # for more information.
 my %status = (     # Enumeration for the output Nagios states
@@ -1284,7 +1286,7 @@ sub get_sdwan_hc {
          $k++;
       }
 
-      if ($#sdwan_hc_failed > 0) {
+      if ($#sdwan_hc_failed >= 0) {
          $return_string = 'SDWAN HC Failed: '.join(';', @sdwan_hc_failed);
          $return_state = 'CRITICAL';
       }
